@@ -11,7 +11,7 @@ class paper():
         self.A4 = 2480, 3508
         self.vsmfnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\ar.ttf") , 50)
         self.smfnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\ar.ttf") , 75)
-        self.fnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\end.ttf") , 130)         #// the original used font.
+        self.fnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\font.ttf") , 130)         #// the original used font.
         self.img = Image.new(mode = 'RGBA' , size = self.A4 , color = "white")    
         self.draw = ImageDraw.Draw(self.img)
         
