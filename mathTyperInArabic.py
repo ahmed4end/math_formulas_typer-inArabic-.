@@ -6,22 +6,22 @@ from resizeimage import resizeimage
 
 class paper():
     def __init__(self):
-        self.arabic ={"0":"٠","1":"١","2":"٢","3":"٣","4":"٤","5":"٥","6":"٦","7":"٧","8":"٨","9":"٩","*":"×"}
+        self.arabic ={"0":"٠","1":"١","2":"٢","3":"٣","4":"٤","5":"٥","6":"٦","7":"٧","8":"٨","9":"٩","*":"×","x":"س","y":"ص"}
         
         self.A4 = 2480, 3508
         self.vsmfnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\ar.ttf") , 50)
         self.smfnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\ar.ttf") , 75)
-        self.fnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\font.ttf") , 130)         #// the original used font.
+        self.fnt = ImageFont.truetype(os.path.join(os.getcwd()+ "\\tst.ttf") , 130)         #// the original used font.
         self.img = Image.new(mode = 'RGBA' , size = self.A4 , color = "white")    
         self.draw = ImageDraw.Draw(self.img)
         
         self.replace = lambda dict, text: re.sub("|".join(map(re.escape, dict.keys())),
                  lambda m: dict[m.string[m.start():m.end()]],
                  text)
-        #self.draw.rectangle([(0,0), (2300,500)], outline="black", width=1)
+        self.draw.rectangle([(0,0), (2300,500)], outline="black", width=1)
         
-        self.uniqued = {}       #don't change it.
-        self.uniquen = {}        #don't change it.
+        self.uniqued = {0:0}       #don't change it.
+        self.uniquen = {0:0}        #don't change it.
         self.d_sign_width = 0   #don't change it.
         self.simple_eq_size = (0,0) #don't change it.
         self.dominsaver = False #don't change it.
@@ -35,18 +35,26 @@ class paper():
         for i in sorted:
             if i[:2] =="f(":
                 if commander=="":
-                    self.fraction( (pos[0]-self.width_cyborg, pos[1]) , i, commander)
-                    self.width_cyborg += self.d_sign_width + hmargin
+                    try:
+                        self.fraction( (pos[0]-self.width_cyborg, pos[1]) , i, commander)
+                        self.width_cyborg += self.d_sign_width + hmargin
+                    except:
+                        print("probably, the formula is incorrect!")
+                        sys.exit()
                 else:
                     if len(sorted) ==1: return self.fraction(pos, i, commander)
                     container.append(("f", self.fraction(pos, i, commander), i))
             elif i[:2] == "s(":
                 if commander =="":
-                    self.root( (pos[0]-self.width_cyborg, pos[1]), i, commander)
-                    self.width_cyborg += self.sqrt_width + hmargin
+                    try:
+                        self.root( (pos[0]-self.width_cyborg, pos[1]), i, commander)
+                        self.width_cyborg += self.sqrt_width + hmargin
+                    except:
+                        print("probably, the formula is incorrect!")
+                        sys.exit()
                 else:
                     if len(sorted) ==1: return self.root(pos, i, commander)
-                    container.append(("r", self.root(pos, i, commander), i))
+                    container.append(("s", self.root(pos, i, commander), i))
             else:
                 if commander == "":
                     self.simple( (pos[0]-self.width_cyborg, pos[1]+self.simple_eq_size[1]//4+2), i, commander)
@@ -55,18 +63,19 @@ class paper():
                     if len(sorted) ==1: return self.simple(pos, i, commander)
                     container.append(("n", self.simple(pos, i, commander), i))
 
-        if commander!="": return self.merger(*container)
+        if commander!="":
+            return self.merger(*container)
 
  
         if show:
             self.img.save("test.png")
             os.startfile("test.png")
     
-    def merger(self, *args, margin_top=-8, margin_center=10):
-        try:
-            height = max([i[1].size[1] for i in args])
-        except:
-            height = 300
+    def merger(self, *args, margin_top=-9, margin_center=10):
+        #print(self.uniquen)
+        #print([i for i in max(self.uniqued.values())])
+        height = max([i for i in self.uniquen.values()])+max([i for i in self.uniqued.values()])
+
         size = (sum([i[1].size[0] for i in args]+[margin_center*(len(args)-1)]), height)
         pos = size[:]
         margin_r = 0
@@ -75,10 +84,16 @@ class paper():
         Draw = ImageDraw.Draw(Img)
         for i in args:
             margin_r += i[1].size[0]+margin_center
-            if i[0] == "f":Img.paste(i[1], (pos[0]-margin_r, size[1]-max(self.uniqued.values())-self.uniquen[i[2]]), i[1])
+            #if i[0] == "s":Img.paste(i[1], (pos[0]-margin_r, 0), i[1])
+
+            if i[0] == "s":
+
+                Img.paste(i[1], (pos[0]-margin_r, size[1]-max(self.uniqued.values())-self.uniquen[i[2]]), i[1])
+
+            elif i[0] == "f":Img.paste(i[1], (pos[0]-margin_r, size[1]-max(self.uniqued.values())-self.uniquen[i[2]]), i[1])
             else:Img.paste(i[1], (pos[0]-margin_r, size[1]-max(self.uniqued.values())-i[1].size[1]//2+margin_top), i[1])
-        self.uniqued = {}
-        self.uniquen = {}
+        self.uniqued = {0:0}
+        self.uniquen = {0:0}
         return Img
 
     def cage(self, size, *args, show=False, debug=False):
@@ -121,7 +136,7 @@ class paper():
         """
         e, res = len(formula), [] # just to clear the list.
         iseven = lambda s:True if s.count("(") == s.count(")") else False
-        crack =lambda s: re.search("([fs]\(.*\)|[0-9½+\-*])" ,s)
+        crack =lambda s: re.search("([fs]\(.*\)|[0-9½+\-*]|[abxyz])" ,s)
         def recursion(formula, s):
             # this is a contained recursion function .
             for i in range(s, e+1):
@@ -158,7 +173,7 @@ class paper():
         return  [(pos[0]-raw_size[0], pos[1]-raw_size[1]), real_size]
 
     def simple(self, pos, formula, commander="", margin_top=0):
-        formula = "".join(re.findall("[0-9]+|[+\-*]+|[½]", formula)[::-1]) #fix into arabic order
+        formula = "".join(re.findall("[0-9]+|[+\-*]+|[½]|[abxyz]", formula)[::-1]) #fix into arabic order
         formula = self.replace(self.arabic, formula)
         size = self.draw.textsize(text=formula, font=self.fnt)
         self.simple_eq_size = size
@@ -196,18 +211,20 @@ class paper():
             d_margin = d_margin
         elif not self.dominsaver: #especial case (n_margin & d_margin).
             d_margin = 10
-            n_margin = 5
+            n_margin = 0
             
             self.dominsaver = True
         ###########################
-        
+        #print(n)
         n = self.robot((0,0), n, commander="fraction")
         d = self.robot((0,0), d, commander="fraction")
 
         if nc[:2]=="f(" and allow_scalling:
             nw, nh = n.size[0], n.size[1]
-            dw, dh = d.size[0], d.size[1]
             n = resizeimage.resize_thumbnail(n, [nw-20, nh-20])
+
+        if dc[:2]=="f(" and allow_scalling:
+            dw, dh = d.size[0], d.size[1]
             d = resizeimage.resize_thumbnail(d, [dw-20, dh-20])
 
 
@@ -276,7 +293,7 @@ class paper():
                 ssize = sqrt_sign.size
                 sqrt_sign = sqrt_sign.resize((ssize[0],fsize[1]), Image.ANTIALIAS)
                 height = fsize[1]
-            
+
             size = (figure.ceilw[0]+figure.sqrt[0]+20, height+20)
             
             sqrtp = (size[0]-sqrt_sign.size[0], size[1]-sqrt_sign.size[1])
@@ -289,7 +306,14 @@ class paper():
                                     ["t", divsignp, "_"*length, "black", self.fnt],
                                     ["p", formula, formulap, formula]
                                 )
+            ceil_offset = self.fnt.getoffset("_"*length)
+
             if commander != "":
+                try:
+                    self.uniqued["s("+cformula+")"] = self.uniqued[cformula]+figure.ceilw[1]-ceil_offset[1] 
+                    self.uniquen["s("+cformula+")"] = self.uniquen[cformula] +margin_top
+                except:
+                    pass
                 return root
 
             pos = self.fixp(pos, size=size, size_given=True)[0]
@@ -307,5 +331,8 @@ class paper():
 
 if __name__ == "__main__":
 
-    #paper().robot((2300,500), "f(s(f(85/f(5*9/s(25))))/2)+s(f(25/55))", show=True)
-    paper().robot((2300,500), "f(s(f(5/9))+f(15/88)/33)", show=True)
+    #paper().robot((2300,500), "f(s(f(x/f(5*9/s(25))))/2)+s(f(25/55))", show=True)
+    #paper().robot((2300,500), "f(s(f(44x/f(1/8)))+f(1/3)/55y)", show=True)
+    #paper().robot((2300,500), "f(1/f(1/2))55y+s(25)", show=True)
+    paper().robot((2300,500), "f(f(1/f(1/9)+f(1/f(1/9)))+f(1/2)/f(1/f(1/9)+f(1/f(1/9)))+f(1/2))", show=True)
+    #paper().robot((2300,500), "54+s(25)", show=True)
